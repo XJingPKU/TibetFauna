@@ -1,11 +1,11 @@
-﻿# =========================================================
-# Title: Soil faunal abundance analysis in the Tibetan grasslands
+# =========================================================
+# Title: Soil faunal abundance in the Tibetan grasslands
 #
 # Author details: Author: Xin Jing 
 # Contact details: jingxin0123@gmail.com
 #
 # First created: July 19, 2015
-# Last modified: Dec. 1, 2016
+# Last modified: June 9, 2017
 #
 # Script info: This script performs statistical analyses on soil faunal abundance.  
 # Data info: Data are soil faunal abundance and related environmental variables.
@@ -138,9 +138,11 @@ df.abun <- all.fauna.dat %>%
 # summary of the abundance of soil nematodes and arthropods (sum, mean and se)
 sum.dat <- data.frame(apply(df.abun, 2, sum),
                       apply(df.abun, 2, mean),
-                      apply(df.abun, 2, se.df))
+                      apply(df.abun, 2, se.df),
+                      apply(df.abun, 2, min),
+                      apply(df.abun, 2, max))
 # rename the dataframe
-names(sum.dat) <- c("sum", "mean", "se")
+names(sum.dat) <- c("sum", "mean", "se", "min", "max")
 # print the results
 print(sum.dat, digits = 3)
 
@@ -153,9 +155,11 @@ df.biom <- all.fauna.dat %>%
 # summary of the biomass of soil nematodes and arthropods (sum, mean, se)
 sum.dat <- data.frame(apply(df.biom, 2, sum),
                       apply(df.biom, 2, mean),
-                      apply(df.biom, 2, se.df))
+                      apply(df.biom, 2, se.df),
+                      apply(df.biom, 2, min),
+                      apply(df.biom, 2, max))
 # rename the dataframe
-names(sum.dat) <- c("sum", "mean", "se")
+names(sum.dat) <- c("sum", "mean", "se", "min", "max")
 # print the results
 print(sum.dat, digits = 2)
 
@@ -184,8 +188,8 @@ sub.fauna.dat <- all.fauna.dat %>%
   select(pH, SOC, bio12, bio4, plant.species.richness, 
          Nematoda, Arthropoda, Long, Lat)
 names(sub.fauna.dat) <- c("pH", "SOC", "MAP", "SET",
-                      "PlantSR", "nema.abund", "arth.abund", 
-                      "Long", "Lat")
+                          "PlantSR", "nema.abund", "arth.abund", 
+                          "Long", "Lat")
 
 # Check normality for each varibale 
 nsub.fauna.dat <- length(names(sub.fauna.dat))
@@ -208,7 +212,7 @@ sub.fauna.dat$PlantSR <- sqrt(sub.fauna.dat$PlantSR)
 # by nematodes
 set.seed(123)
 fit1 <- randomForest(nema.abund ~ SOC + MAP + SET + PlantSR + pH, ntree = 500, 
-                    keep.forest = TRUE, importance = TRUE, data = sub.fauna.dat)
+                     keep.forest = TRUE, importance = TRUE, data = sub.fauna.dat)
 print(fit1) # view results 
 # varImpPlot(fit1, main = "Variable importance on nematode abundance") # view results
 imp1 <- importance(fit1) # importance of each predictor
@@ -218,7 +222,7 @@ plot(fit1, main = "Error Rates-Nematode Random Forest")
 # perform significance test for the random forest model
 set.seed(125)
 rf.perm1 <- rf.significance(fit1, sub.fauna.dat[c("pH", "SOC", "MAP", "SET", "PlantSR")], 
-                           nperm = 9999, ntree = 500)
+                            nperm = 9999, ntree = 500)
 rf.perm1
 # Number of permutations:  9999 
 # p-value:  0 
@@ -231,8 +235,8 @@ rf.perm1
 # https://rdrr.io/cran/rfPermute/man/rfPermute.html
 set.seed(127)
 fit1.rp <- rfPermute(nema.abund ~ pH + SOC + MAP + SET + PlantSR, 
-          ntree = 500, nrep = 9999, # num.cores = 3,
-          data = sub.fauna.dat)
+                     ntree = 500, nrep = 9999, # num.cores = 3,
+                     data = sub.fauna.dat)
 fit1.rp
 # Type of random forest: regression
 # Number of trees: 500
@@ -253,7 +257,7 @@ colnames(df.imp1) <- c("IncMSE", "IncMSE.pval", "var.nam", "sig.sign")
 # by arthropods
 set.seed(124)
 fit2 <- randomForest(arth.abund ~ pH + SOC + MAP + SET + PlantSR, ntree = 500, 
-                    keep.forest = TRUE, importance = TRUE, data = sub.fauna.dat)
+                     keep.forest = TRUE, importance = TRUE, data = sub.fauna.dat)
 print(fit2) # view results 
 # varImpPlot(fit2, main = "Variable importance on arthropod abundance") # view results
 imp2 <- importance(fit2) # importance of each predictor
@@ -308,10 +312,10 @@ p1 <- ggplot(data = df.imp1, aes(x = var.nam, y = IncMSE, color = sig.sign)) +
   annotate("text", x = Inf, y = 15, label = "(a)",
            vjust = 1.5, size = 6) +
   scale_x_discrete(limit = c("PlantSR", "SOC", "SET", "MAP", "pH"),
-    labels = c("Plant species richness",
-               "Soil organic carbon",
-               "Temperature seasonality",
-               "Mean annual precipitation", "Soil pH")) +
+                   labels = c("Plant species richness",
+                              "Soil organic carbon",
+                              "Temperature seasonality",
+                              "Mean annual precipitation", "Soil pH")) +
   coord_flip() +
   theme_bw(base_size = 16) +
   theme(legend.position = "none")
@@ -352,7 +356,7 @@ op <- par(mfrow = c(2, 5), mar = c(4.5, 4.5, 4, 1.5))
 for (i in seq_along(impvar1)) {
   partialPlot(fit1, sub.fauna.dat, impvar1[i], xlab = impvar1[i],
               ylab = expression(Nematode~abundance~
-                                (number~of~individuals~m^{-2}~of~soil)),
+                                  (number~of~individuals~m^{-2}~of~soil)),
               main = paste("Partial Dependence on", impvar1[i]),
               ylim = c(35, 60))
 }
@@ -420,7 +424,7 @@ for(i in 7:18) {
   # perform significance test for the random forest model
   set.seed(k)
   rf.fit <- rf.significance(fit, df.all[c("pH", "SOC", "MAP", "SET", "PlantSR")], 
-                  nperm = 9999, ntree = 500)
+                            nperm = 9999, ntree = 500)
   print(rf.fit)
   k <- k + 1
   # estimate significance of importance metrics
@@ -438,7 +442,7 @@ for(i in 7:18) {
 df1 <- melt(sub.fauna.dat, id.vars = c("Long", "Lat", "nema.abund", "arth.abund"))
 names(df1) <- c("Long", "Lat", "nema.abund", "arth.abund", "EnvVars", "EnvValues")
 levels(df1$EnvVars) <- c("Soil pH", "Soil organic carbon", "Mean annual precipitation",
-                                  "Temperature seasonality", "Plant species richness")
+                         "Temperature seasonality", "Plant species richness")
 df2 <- melt(df1, id.vars = c("Long", "Lat", "EnvVars", "EnvValues"))
 levels(df2$variable) <- c("Nematode abundance", "Arthropod abundance")
 
@@ -491,11 +495,11 @@ df.fig.2.long <- melt(df.fig.2, id.vars = c("Site", "pH", "SOC", "bio12", "bio4"
 
 # add a new colum
 df.fig.2.long$taxa.raw <- ifelse(df.fig.2.long$variable %in% c("Tylenchida", "Aphelenchida",
-                                                                 "Rhabditida", "Enoplida", "Dorylaimida"),"Nematode", "Arthropod")
+                                                               "Rhabditida", "Enoplida", "Dorylaimida"),"Nematode", "Arthropod")
 df.fig.2.long$taxa.raw <- factor(df.fig.2.long$taxa.raw, ordered = TRUE,
-                                  levels = c("Nematode", "Arthropod"))
+                                 levels = c("Nematode", "Arthropod"))
 names(df.fig.2.long) <- c("Site", "pH", "SOC", "bio12", "bio4", "plant.species.richness",
-                           "taxa.fine", "abundance", "taxa.raw")
+                          "taxa.fine", "abundance", "taxa.raw")
 # reshaping data
 df1 <- melt(df.fig.2.long, id.vars = c("Site", "taxa.fine", "taxa.raw", "abundance"))
 levels(df1$variable) <- c("Soil pH", "Soil organic carbon", "Mean annual precipitation",
@@ -503,18 +507,21 @@ levels(df1$variable) <- c("Soil pH", "Soil organic carbon", "Mean annual precipi
 df1$abundance <- sqrt(df1$abundance)
 
 # ggplot
-ggplot(df1, aes(x = abundance, y = value, colour = taxa.fine, shape = taxa.raw)) +
-  geom_point(size = 2.5) +
-  geom_smooth(method = "lm", se = FALSE) +
+ggplot(df1, aes(y = abundance, x = value)) +
+  geom_point(size = 2.5, color = "grey") +
+  geom_smooth(aes(color = taxa.fine), method = "lm", size = 0.50, se = FALSE) +
+  scale_color_manual(values = c("#662506", "#a50026", "#d73027", "#f46d43", "#fdae61", "#92c5de",
+                                "#abd9e9", "#74add1", "#4575b4", "#313695", "#081d58")) +
+  geom_smooth(method = "lm", color = "black", size = 1.0, se = FALSE) +
   facet_wrap(taxa.raw ~ variable, ncol = 5) +
-  coord_flip() +
-  xlab(expression(Abundance~(number~of~individuals~m^{-2}~of~soil))) +
-  ylab("") +
+  # coord_flip() +
+  ylab(expression(Abundance~(number~of~individuals~m^{-2}~of~soil))) +
+  xlab("") +
   theme_bw(base_size = 15) +
   theme(panel.grid = element_blank(),
         legend.key = element_rect(colour = NA),
         strip.background=element_blank())
-# ggsave("./outputs/Fig2.pdf", width = 13.348, height = 6.88)
+# ggsave("./outputs/Fig2_V2.pdf", width = 13.348, height = 6.88)
 
 #############################
 # table 2
@@ -566,5 +573,35 @@ dlply(df1, .(taxa.raw, taxa.fine),
 dlply(df1, .(taxa.raw, taxa.fine),
       function (x) modified.ttest(x$PlantSR, x$abundance, x[, 2:3])[c(1, 2, 4)])
 
-# End of the script
-#==========================================================
+sessionInfo()
+# R version 3.3.2 (2016-10-31)
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+# Running under: Windows 7 x64 (build 7601) Service Pack 1
+# 
+# locale:
+#   [1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
+# [3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
+# [5] LC_TIME=English_United States.1252    
+# 
+# attached base packages:
+#   [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#   [1] bindrcpp_0.1        SpatialPack_0.2-3   rfPermute_2.1.5     rfUtilities_2.0-1  
+# [5] randomForest_4.6-12 ggplot2_2.2.1       reshape2_1.4.2      dplyr_0.6.0        
+# [9] plyr_1.8.4         
+# 
+# loaded via a namespace (and not attached):
+#   [1] Rcpp_0.12.11         mapdata_2.2-6        RColorBrewer_1.1-2   bindr_0.1           
+# [5] tools_3.3.2          digest_0.6.12        rpart_4.1-11         goftest_1.1-1       
+# [9] tibble_1.3.3         gtable_0.2.0         nlme_3.1-131         lattice_0.20-35     
+# [13] mgcv_1.8-17          rlang_0.1.1          Matrix_1.2-10        parallel_3.3.2      
+# [17] gridExtra_2.2.1      stringr_1.2.0        swfscMisc_1.2        maps_3.1.1          
+# [21] spatstat.utils_1.6-0 grid_3.3.2           glue_1.0.0           R6_2.2.1            
+# [25] polyclip_1.6-1       deldir_0.1-14        magrittr_1.5         tensor_1.5          
+# [29] scales_0.4.1         assertthat_0.2.0     abind_1.4-5          spatstat_1.51-0     
+# [33] colorspace_1.3-2     labeling_0.3         stringi_1.1.5        lazyeval_0.2.0      
+# [37] munsell_0.4.3
+#==========================================================#
+# End of the script                                        #
+#==========================================================#
