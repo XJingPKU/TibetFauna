@@ -1,6 +1,6 @@
 # TibetFauna
 
-Data and R script for the TibetFauna project
+Data and R script in the TibetFauna project
 
 A manuscrit has been accepted for publication in *Ecosphere* on June 15, 2017  
 **Title**: On the controls of abundance for soil-dwelling organisms on the Tibetan Plateau  
