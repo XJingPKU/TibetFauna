@@ -1,6 +1,6 @@
 # TibetFauna
 
-Data and R Scripts for TibetFauna Manuscript
+The Data and R Script for the TibetFauna project
 
 A manuscrit has been accepted for publication in *Ecosphere* on June 15, 2017
 
